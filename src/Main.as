@@ -3,6 +3,8 @@
  */
 package
 {
+import appManager.displayContentElemets.TitleText;
+
 import com.mteamapp.StringFunctions;
 
 import contents.TextFile;
@@ -11,8 +13,12 @@ import contents.alert.Alert;
 
 import dynamicFrame.FrameGenerator;
 
+import flash.display.MovieClip;
+
 import flash.display.Sprite;
+import flash.events.MouseEvent;
 import flash.filesystem.File;
+import flash.text.TextField;
 
 public class Main extends Sprite
 {
@@ -24,17 +30,45 @@ public class Main extends Sprite
     const dateFormats:Array = ["DATE","DATETIME","TIMESTAMP","TIME","YEAR",
                                 "datetime","datetime2","smalldatetime","date","time","datetimeoffset","timestamp"];
 
+    private var loadSQLMC:MovieClip,
+                hintTF:TextField;
+
     public function Main()
     {
         super();
+
+        loadSQLMC = Obj.get("load_sql_mc",this);
+        loadSQLMC.addEventListener(MouseEvent.CLICK, loadSQLFile);
+
+        hintTF = Obj.get("hint_mc",this);
+        hintTF.text = '' ;
+
         FrameGenerator.createFrame(stage,-1,this);
 
-        var database:String = TextFile.load(File.applicationDirectory.resolvePath("database.sql"));
+        //var database:String = TextFile.load(File.applicationDirectory.resolvePath("database.sql"));
 
-        defineObjects(database);
+        //defineObjects(database);
     }
 
-    private function defineObjects(databaseSQL:String):void
+    private function loadSQLFile(e:MouseEvent):void
+    {
+        FileManager.browse(fileLoaded,['sql'],'Select your database SQL file to generate the moduls.');
+        function fileLoaded(file:File):void
+        {
+            var database:String = TextFile.load(file);
+            var dbModel:Object = defineObjects(database);
+
+            var count:uint = 0 ;
+            for(var i:String in dbModel)
+            {
+                count++ ;
+            }
+
+            hintTF.text = "The file is loaded and it is included "+count+" Tabel(s).";
+        }
+    }
+
+    private function defineObjects(databaseSQL:String):Object
     {
         var FullModel:Object = {} ;
 
@@ -122,8 +156,9 @@ public class Main extends Sprite
                 //TODO add coments to
             }
 
-            trace(JSON.stringify(FullModel,null,' '));
         }
+        trace(JSON.stringify(FullModel,null,' '));
+        return FullModel ;
     }
 }
 }
