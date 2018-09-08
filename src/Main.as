@@ -102,14 +102,17 @@ public class Main extends Sprite
         /**PHP class creator*/
         private function generatePHPFile(classObject:Object,className:String,comments:Object):String
         {
+            //new Alert(JSON.stringify(comments,null,' '));
             const CLASSNAME:String = "CLASSNAME";
             const PARAMETERS:String = "PARAMETERS" ;
-            var PHPClassThemplet:String = "class "+CLASSNAME+"{\n"+PARAMETERS+"\n\tpublic function __construct(){}\n}";
+            var PHPClassThemplet:String = "<?php\n/** Created by SaffronCode Assist */\n\nclass "+CLASSNAME+"{\n"+PARAMETERS+"\n\tpublic function __construct(){}\n}";
             PHPClassThemplet = PHPClassThemplet.replace(CLASSNAME,className);
             var params:String = "" ;
             for(var i:String in classObject)
             {
-                params+='\tpublic $'+i+' = '+(classObject[i] is String?'""':classObject[i])+';\n';
+                if(comments[i] != undefined)
+                    params+='\t//'+comments[i]+'\n';
+                params+='\tpublic $'+i+' = '+(classObject[i] is String?'""':classObject[i])+';\n\n';
             }
             PHPClassThemplet = PHPClassThemplet.replace(PARAMETERS,params);
             return PHPClassThemplet ;
