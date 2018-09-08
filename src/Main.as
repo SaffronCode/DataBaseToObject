@@ -16,6 +16,9 @@ import flash.filesystem.File;
 
 public class Main extends Sprite
 {
+
+    const stringFormats:Array = ["CHAR","VARCHAR","TINYTEXT","TEXT","BLOB","MEDIUMTEXT","MEDIUMBLOB","LONGTEXT","LONGBLOB","ENUM","SET"];
+
     public function Main()
     {
         super();
@@ -67,8 +70,26 @@ public class Main extends Sprite
             trace("parametersPart : "+parametersPart);
             //Findig parameters part ↑
 
-
             FullModel[foundedModelName] = {} ;
+
+            //The parameters ↓
+
+            var splitedParameters:Array = parametersPart.split(",");
+
+            for(j = 0 ; j<splitedParameters.length ; j++)
+            {
+                var paramName:String = (splitedParameters[j] as String).replace(/[^`]*`(.*)`.*/,'$1');
+                var paramTypePart:String = (splitedParameters[j] as String).replace(/[^`]*`.*`[\s]*(.*)/,'$1');
+                paramTypePart = paramTypePart.substring(0,paramTypePart.indexOf(' ')).replace(/(.+)\([\d]*\).*/,'$1').toUpperCase();
+                if(stringFormats.indexOf(paramTypePart)!=-1)
+                    FullModel[foundedModelName][paramName] = '' ;
+                else
+                    FullModel[foundedModelName][paramName] = paramTypePart ;
+
+                //TODO add coments to
+            }
+
+            trace(JSON.stringify(FullModel,null,' '));
         }
     }
 }
