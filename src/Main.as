@@ -18,10 +18,15 @@ import flash.display.MovieClip;
 import flash.display.Sprite;
 import flash.events.MouseEvent;
 import flash.filesystem.File;
+import flash.net.URLRequest;
+import flash.net.navigateToURL;
 import flash.text.TextField;
 
 public class Main extends Sprite
 {
+    /**It will store the last modul's comments*/
+    var CommentModel:Object;
+    var FullModel:Object;
 
     const stringFormats:Array = ["CHAR","VARCHAR","TINYTEXT","TEXT","BLOB","MEDIUMTEXT","MEDIUMBLOB","LONGTEXT","LONGBLOB","ENUM","SET",
                                     "char","varchar","text","nchar","nvarchar","ntext","binary","varbinary","image"];
@@ -31,7 +36,9 @@ public class Main extends Sprite
                                 "datetime","datetime2","smalldatetime","date","time","datetimeoffset","timestamp"];
 
     private var loadSQLMC:MovieClip,
-                hintTF:TextField;
+                hintTF:TextField,
+                phpModulsExportMC:MovieClip,
+                logoMC:MovieClip;
 
     public function Main()
     {
@@ -42,6 +49,12 @@ public class Main extends Sprite
 
         hintTF = Obj.get("hint_mc",this);
         hintTF.text = '' ;
+
+        phpModulsExportMC = Obj.get("save_php_mc",this);
+        phpModulsExportMC.visible = false ;
+        phpModulsExportMC.addEventListener(MouseEvent.CLICK,generatePHPClasses);
+
+        logoMC = Obj.get("logo_mc",this);
 
         FrameGenerator.createFrame(stage,-1,this);
 
@@ -56,21 +69,56 @@ public class Main extends Sprite
         function fileLoaded(file:File):void
         {
             var database:String = TextFile.load(file);
-            var dbModel:Object = defineObjects(database);
+            defineObjects(database);
 
             var count:uint = 0 ;
-            for(var i:String in dbModel)
+            for(var i:String in FullModel)
             {
                 count++ ;
             }
+
+            phpModulsExportMC.visible = true ;
+            logoMC.visible = false ;
 
             hintTF.text = "The file is loaded and it is included "+count+" Tabel(s).";
         }
     }
 
+    private function generatePHPClasses(e:MouseEvent):void
+    {
+        FileManager.browseDirectory(onDirectorySelected);
+        function onDirectorySelected(directory:File):void
+        {
+            for(var i:String in FullModel)
+            {
+                var phpClasse:String = generatePHPFile(FullModel[i],i,CommentModel[i]);
+                var phpFile:File = directory.resolvePath(i+'.php');
+                TextFile.save(phpFile,phpClasse);
+            }
+            navigateToURL(new URLRequest(directory.url));
+        }
+    }
+
+        /**PHP class creator*/
+        private function generatePHPFile(classObject:Object,className:String,comments:Object):String
+        {
+            const CLASSNAME:String = "CLASSNAME";
+            const PARAMETERS:String = "PARAMETERS" ;
+            var PHPClassThemplet:String = "class "+CLASSNAME+"{\n"+PARAMETERS+"\n\tpublic function __construct(){}\n}";
+            PHPClassThemplet = PHPClassThemplet.replace(CLASSNAME,className);
+            var params:String = "" ;
+            for(var i:String in classObject)
+            {
+                params+='\tpublic $'+i+' = '+(classObject[i] is String?'""':classObject[i])+';\n';
+            }
+            PHPClassThemplet = PHPClassThemplet.replace(PARAMETERS,params);
+            return PHPClassThemplet ;
+        }
+
     private function defineObjects(databaseSQL:String):Object
     {
-        var FullModel:Object = {} ;
+        FullModel = {};
+        CommentModel = {};
 
         var splitedFile:Array = databaseSQL.split("CREATE TABLE");
         splitedFile.shift();
@@ -110,6 +158,7 @@ public class Main extends Sprite
             //Findig parameters part ↑
 
             FullModel[foundedModelName] = {} ;
+            CommentModel[foundedModelName] = {} ;
 
             //The parameters ↓
 
@@ -149,11 +198,13 @@ public class Main extends Sprite
                 else
                     FullModel[foundedModelName][paramName] = '?';
 
-                if(paramName.indexOf('\n')!=-1)
-                    {
-                        new Alert("all:"+all+" - paramName : "+paramName+" - absoluteType : "+absoluteType+" - paramTypePart : "+paramTypePart);
-                    }
-                //TODO add coments to
+                var commentPart:String = '' ;
+                if(paramTypePart.indexOf(" COMMENT ")!=-1)
+                {
+                    commentPart = paramTypePart.replace(/.*\sCOMMENT\s'(.*)'/,'$1');
+                    //new Alert("commentPart : "+commentPart);
+                    CommentModel[foundedModelName][paramName] = commentPart ;
+                }
             }
 
         }
